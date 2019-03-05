@@ -1,0 +1,228 @@
+%%%%%%%%%%%%%%%%%%%%%lab1_2.m
+subplot(2,4,1)
+x=imread('lena.bmp');
+
+imshow(x)
+title('原图');
+for(i=1:7)
+    k=8-i;
+    str=['k=' num2str(k)];
+    subplot(2,4,i+1)
+    imshow(round(x./2^i),[0,2^(8-i)-1])
+    title(str);
+end
+%%%%%%%%%%%%%%%%%%%%%lab1_3.m
+x=imread('lena.bmp');
+avg=mean(mean(x))
+s=std2(x)^2
+%%%%%%%%%%%%%%%%%%%%%lab1_4.m
+第四题为了方便以后的操作，写成了嵌入式的函数形式，包括3种插值和放大函数：
+1.
+function Z=NNI(A,M,N)
+[m,n]=size(A);
+T=zeros(M,N);
+k1=M/m;
+k2=N/n;
+for(i=1:m)
+    for(j=1:n)
+        u=round(k1*i);
+        v=round(k2*j);
+        T(u,v)=A(i,j);
+  
+    end
+end
+Z=zeros(M,N);
+for(i=1:M)
+    for(j=1:N)
+        a=i/k1;
+        b=j/k2;
+        s=round(a);
+        t=round(b);
+                if(s==0) s=1;end
+        if(t==0) t=1;end
+        Z(i,j)=T(round(k1*s),round(k2*t));%%%%%%%%最邻近插值
+    end
+end
+imtool(uint8(Z),[0,255])
+
+
+
+
+
+
+
+2.
+function B=bilinear(A,M,N)
+[m,n]=size(A);
+T=zeros(M,N);
+k1=M/m;
+k2=N/n;
+for(i=1:m)
+    for(j=1:n)
+        u=round(k1*i);
+        v=round(k2*j);
+        T(u,v)=A(i,j);
+  
+    end
+end
+B=zeros(M,N);
+for(i=1:M)
+    for(j=1:N)
+        a=i/k1;
+        b=j/k2;
+        x0=floor(a);
+        x1=ceil(a);
+        y0=floor(b);
+        y1=ceil(b);
+        if(x0==0) x0=1;end
+        if(y0==0) y0=1;end
+        if(x0==x1) x1=x0+1;end
+        if(y0==y1) y1=y0+1;end
+        if(y1>=n) y1=n;end
+        if(x1>=m) x1=m;end
+        B(i,j)=(x1-a)*(y1-b)*A(x0,y0)+(a-x0)*...
+            (y1-b)*A(x1,y0)+(a-x0)*(b-y0)*A(x1,y1)+(x1-a)*(b-y0)*A(x0,y1);%%双线性插值
+        
+    end
+end
+imtool(uint8(B),[0,255])
+
+
+
+
+
+
+
+
+3.
+function B=bicubic(A,M,N)
+[m,n]=size(A);
+T=zeros(M,N);
+k1=M/m;
+k2=N/n;
+for(i=1:m)
+    for(j=1:n)
+        u=round(k1*i);
+        v=round(k2*j);
+        T(u,v)=A(i,j);
+    end
+end
+B=zeros(M,N);
+for(i=1:M)
+    for(j=1:N)
+        a=i/k1+1;
+        b=j/k2+1;
+        x1=floor(a);
+        y1=floor(b);
+        if(x1==0) x1=1;end
+        if(y1==0) y1=1;end
+        x0=x1-1;
+        y0=y1-1;
+        x2=x1+1;
+        y2=y1+1;
+        x3=x2+1;
+        y3=y2+1;
+        if(x1>=m) x1=m;end
+        if(y1>=n) y1=n;end
+        if(x0==0) x0=1;end
+        if(y0==0) y0=1;end
+        if(y2>=n) y2=n;end
+        if(x2>=m) x2=m;end
+        if(y3>=n) y3=n;end
+        if(x3>=m) x3=m;end
+        i_0=W(x3-a);j_0=W(y3-b);i_1=W(x2-a);j_1=W(y2-b);
+        i_2=W(a-x1);j_2=W(b-y1);i_3=W(a-x0);j_3=W(b-y0);
+        B(i,j)=i_0*j_0*A(x0,y0)+i_0*j_1*A(x0,y1)+...
+            i_0*j_2*A(x0,y2)+i_0*j_3*A(x0,y3)...
+            +i_1*j_0*A(x1,y0)+i_1*j_1*A(x1,y1)...
+            +i_1*j_2*A(x1,y2)+i_1*j_3*A(x1,y3)...
+            +i_2*j_0*A(x2,y0)+i_2*j_1*A(x2,y1)...
+            +i_2*j_2*A(x2,y2)+i_2*j_3*A(x2,y3)...
+            +i_3*j_0*A(x3,y0)+i_3*j_1*A(x3,y1)...
+            +i_3*j_2*A(x3,y2)+i_3*j_3*A(x3,y3);
+            %%三次线性插值
+        
+    end
+end
+imtool(uint8(B),[0,255])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%lab1_5.m
+第五题用到了第四题中的插值方法，以及shear,rotation这两个函数，还包括一个主函数
+1.主函数：
+%A=imread('lena.bmp');
+A=imread('elain1.bmp');
+T=shear(A,1.5);
+B=rotation(T,1/6*pi);
+%F=NNI(B,2048,2048);
+%F=bilinear(B,2048,2048);
+F=bicubic(B,2048,2048);
+
+
+
+
+
+
+2.
+function [T]=shear(A,sh)
+[m,n]=size(A);
+N=ceil(m+n*sh);
+T=zeros(m,N);
+Z=zeros(m,N);
+k=N/n;
+for(i=1:m)
+    for(j=1:n)
+        x=i;
+        y=round(sh*i+j);
+        T(x,y)=A(i,j);
+    end
+end
+
+
+
+
+
+3.
+function T=rotation(A,d)
+[m,n]=size(A);
+R=[cos(d) sin(d);-sin(d) cos(d)];
+v=[1:m];
+w=[1:n];
+k=1;
+for i=1:m
+    for j=1:n
+        x(k)=v(i)*cos(d)-w(j)*sin(d);
+        y(k)=v(i)*sin(d)+w(j)*cos(d);
+        k=k+1;
+    end
+end
+k=1;
+a=min(x);
+x=x-a+1;
+for i=1:m
+    for j=1:n
+        x0=floor(x(k));
+        x1=ceil(x(k));
+        y0=floor(y(k));
+        y1=ceil(y(k));
+        T(x0,y0)=A(i,j);
+        T(x1,y0)=A(i,j);
+        T(x0,y1)=A(i,j);
+        T(x1,y1)=A(i,j);
+        k=k+1;
+    end
+end
